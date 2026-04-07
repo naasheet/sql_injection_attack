@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.db
+.env
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.vercel/
+vulnerable_app/
+secure_app/

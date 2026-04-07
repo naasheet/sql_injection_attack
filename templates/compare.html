@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Query Comparison{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <h1 class="animate-in">Attack Query Comparison</h1>
+    <p class="subtitle animate-in" style="animation-delay:0.05s">
+        For each attack: the original template, the injected query (vulnerable), and the parameterized query (secure).
+    </p>
+
+    <div class="stagger">
+        {% for case in cases %}
+        <div class="card card-static mb-2 animate-in">
+            <h2>{{ case.name }}</h2>
+            <p style="margin-bottom:12px">
+                <strong style="color:var(--text-secondary);font-size:0.85rem">Payload:</strong>
+                <span class="payload-tag">{{ case.payload }}</span>
+            </p>
+
+            <div class="grid" style="grid-template-columns:1fr;gap:10px">
+
+                <div class="panel panel-template">
+                    <p class="panel-title">1. Original Query Template</p>
+                    <div class="code-block">{{ case.original_template }}</div>
+                </div>
+
+                <div class="panel panel-injected">
+                    <p class="panel-title">2. Injected Query (Vulnerable)</p>
+                    <div class="code-block">{{ case.injected_query }}</div>
+                </div>
+
+                <div class="panel panel-secure">
+                    <p class="panel-title">3. Parameterized Query (Secure)</p>
+                    <div class="code-block">{{ case.parameterized_query }}</div>
+                    <p class="param-line"><strong>Safe params:</strong> <code>{{ case.safe_params }}</code></p>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

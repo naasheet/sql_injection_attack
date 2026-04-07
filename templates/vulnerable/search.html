@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Vulnerable Search{% endblock %}
+
+{% block banner %}
+<div class="mode-banner vuln">VULNERABLE APP — STRING CONCATENATION — FOR DEMO ONLY</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <div class="card card-red card-static animate-in">
+        <h1>Product Search</h1>
+        <p class="subtitle">This search uses string formatting in the LIKE clause — try a UNION payload.</p>
+
+        <form method="get" action="{{ url_for('vuln_search') }}" style="display:flex;gap:10px;margin-bottom:16px">
+            <input type="text" name="q" value="{{ query_text or '' }}" placeholder="e.g.  %' UNION SELECT id, username, email, role FROM users -- " style="flex:1">
+            <button type="submit" class="btn btn-danger">Search</button>
+        </form>
+
+        {% if explanation_text %}
+        <div class="explanation-box mb-2 animate-in">{{ explanation_text }}</div>
+        {% endif %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if results %}
+                    {% for row in results %}
+                    <tr class="{% if row.is_injected %}row-injected{% endif %}">
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.category }}</td>
+                        <td>{{ row.price }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="3" class="text-muted">No rows returned.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="mt-2">
+            <a href="{{ url_for('vuln_login') }}" class="btn btn-ghost btn-sm">← Back to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

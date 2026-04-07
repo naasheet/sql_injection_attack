@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Vulnerable Profile{% endblock %}
+
+{% block banner %}
+<div class="mode-banner vuln">VULNERABLE APP — STRING CONCATENATION — FOR DEMO ONLY</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <div class="card card-red card-static animate-in">
+        <h1>User Profile</h1>
+        <p class="subtitle">This page injects the <code>id</code> parameter directly into the query — try <code>?id=1 OR 1=1</code>.</p>
+
+        <form method="get" action="{{ url_for('vuln_profile') }}" style="display:flex;gap:10px;margin-bottom:16px">
+            <input type="text" name="id" value="{{ query_text or '' }}" placeholder="e.g.  1 OR 1=1" style="flex:1">
+            <button type="submit" class="btn btn-danger">Lookup</button>
+        </form>
+
+        {% if explanation_text %}
+        <div class="explanation-box mb-2 animate-in">{{ explanation_text }}</div>
+        {% endif %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if users %}
+                    {% for row in users %}
+                    <tr class="{% if loop.index0 in suspicious_row_indexes %}row-suspicious{% endif %}">
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td>{{ row[3] }}</td>
+                        <td>{{ row[4] }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="5" class="text-muted">No user data found.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="mt-2">
+            <a href="{{ url_for('vuln_login') }}" class="btn btn-ghost btn-sm">← Back to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

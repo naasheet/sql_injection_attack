@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block banner %}
+<div class="mode-banner vuln">VULNERABLE APP — FOR DEMO ONLY</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap wrap-narrow">
+    <div class="card card-red card-static animate-in">
+        <h1>Welcome, {{ username }}</h1>
+
+        <div class="mt-1">
+            Role:
+            <span class="badge {% if role == 'admin' %}badge-admin{% else %}badge-user{% endif %}">
+                {{ role }}
+            </span>
+        </div>
+
+        <div class="mt-1 text-muted">Email: {{ email }}</div>
+
+        {% if role == "admin" %}
+        <div class="alert alert-error mt-2">
+            <span class="alert-icon">[!]</span>
+            Sensitive admin data is now visible — the attacker has full access.
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm mt-2">Logout</a>
+    </div>
+</div>
+{% endblock %}

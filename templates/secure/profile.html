@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Secure Profile{% endblock %}
+
+{% block banner %}
+<div class="mode-banner secure">SECURE APP — PARAMETERIZED QUERIES</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <div class="card card-green card-static animate-in">
+        <h1>User Profile</h1>
+        <p class="subtitle">This page uses a parameterized <code>WHERE id = ?</code> — boolean payloads are treated as literal strings.</p>
+
+        <form method="get" action="{{ url_for('sec_profile') }}" style="display:flex;gap:10px;margin-bottom:16px">
+            <input type="text" name="id" value="{{ query_text or '' }}" placeholder="Try  1 OR 1=1  here" style="flex:1">
+            <button type="submit" class="btn btn-success">Lookup</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if users %}
+                    {% for row in users %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td>{{ row[3] }}</td>
+                        <td>{{ row[4] }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="5" class="text-muted">No user data found — payload treated as literal value.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="mt-2">
+            <a href="{{ url_for('sec_login') }}" class="btn btn-ghost btn-sm">← Back to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

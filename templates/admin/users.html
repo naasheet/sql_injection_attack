@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}User Management{% endblock %}
+
+{% block banner %}
+<div class="mode-banner admin">ADMIN — USER MANAGEMENT</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <div class="flex-between mb-2">
+        <div>
+            <h1 class="animate-in">User Management</h1>
+            <p class="subtitle animate-in" style="animation-delay:0.05s">Add, remove, or reset users in the demo database.</p>
+        </div>
+        <form method="post" action="{{ url_for('admin_reset_db') }}" style="margin:0">
+            <button type="submit" class="btn btn-amber btn-sm" onclick="return confirm('Reset database to defaults?')">Reset to Defaults</button>
+        </form>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 1fr 360px; gap: 20px; align-items: start;">
+
+        <!-- User Table -->
+        <div class="card card-blue card-static animate-in">
+            <h2 class="mb-1">Current Users ({{ users|length }})</h2>
+            <div style="overflow-x:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Active</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user[0] }}</td>
+                        <td><strong>{{ user[1] }}</strong></td>
+                        <td><code style="font-size:0.78rem;color:var(--text-muted)">{{ user[2] }}</code></td>
+                        <td>{{ user[3] }}</td>
+                        <td><span class="badge {% if user[4] == 'admin' %}badge-admin{% else %}badge-user{% endif %}">{{ user[4] }}</span></td>
+                        <td>{{ "Yes" if user[5] else "No" }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('admin_delete_user', user_id=user[0]) }}" style="margin:0">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete {{ user[1] }}?')">X</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not users %}
+                    <tr><td colspan="7" class="text-muted">No users in the database.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+
+        <!-- Add User Form -->
+        <div class="card card-blue card-static animate-in" style="animation-delay:0.1s">
+            <h2 class="mb-1">Add New User</h2>
+            <form method="post" action="{{ url_for('admin_add_user') }}">
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input id="new-username" name="username" type="text" placeholder="e.g. dave" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <input id="new-password" name="password" type="text" placeholder="e.g. D@ve2026!" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-email">Email</label>
+                    <input id="new-email" name="email" type="email" placeholder="e.g. dave@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-role">Role</label>
+                    <select id="new-role" name="role">
+                        <option value="user">user</option>
+                        <option value="admin">admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">+ Add User</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    @media (max-width: 800px) {
+        .wrap .grid { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}

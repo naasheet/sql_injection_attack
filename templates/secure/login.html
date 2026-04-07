@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Secure Login{% endblock %}
+
+{% block banner %}
+<div class="mode-banner secure">SECURE APP — PARAMETERIZED QUERIES + INPUT VALIDATION</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap wrap-narrow">
+    <div class="card card-green card-static animate-in">
+        <h1>Login</h1>
+        <p class="subtitle">This login uses parameterized queries and validates all input before executing.</p>
+
+        <form method="post" action="{{ url_for('sec_login') }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" placeholder="Try the same payloads here" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" placeholder="anything" required>
+            </div>
+            <button type="submit" class="btn btn-success btn-block">Sign In</button>
+        </form>
+
+        {% if validation_error %}
+        <div class="alert alert-warning mt-2 animate-in">
+            <span class="alert-icon">[!]</span>
+            <div>
+                <strong>Input Blocked</strong><br>
+                {{ validation_error }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if auth_error %}
+        <div class="alert alert-error mt-2 animate-in">
+            <span class="alert-icon">[x]</span>
+            {{ auth_error }}
+        </div>
+        {% endif %}
+
+        {% if result %}
+        <div class="alert alert-success mt-2 animate-in">
+            <span class="alert-icon">[OK]</span>
+            <div>Normal login succeeded: <code>{{ result }}</code></div>
+        </div>
+        {% endif %}
+
+        <div class="hint-box">
+            <strong>Test credentials</strong>
+            <p>admin / Adm1n@2026!</p>
+            <p>alice / Alice#Pass91</p>
+            <p>bob / Bob$Secure42</p>
+            <p>charlie / Ch@rlie7788</p>
+        </div>
+
+        <div class="mt-2" style="display:flex;gap:8px;flex-wrap:wrap">
+            <a href="{{ url_for('sec_search') }}" class="btn btn-ghost btn-sm">Search page →</a>
+            <a href="{{ url_for('sec_profile', id=1) }}" class="btn btn-ghost btn-sm">Profile page →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

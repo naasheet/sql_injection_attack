@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Launching Attack{% endblock %}
+
+{% block banner %}
+<div class="mode-banner vuln">ATTACK IN PROGRESS</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap wrap-narrow">
+    <div class="card card-red card-static animate-in">
+        <h1>{{ attack_name }}</h1>
+        <p class="text-muted mb-2">Submitting payload automatically…</p>
+        <p class="text-muted mb-2">If auto-submit is blocked, click the fallback button below.</p>
+
+        <form id="attack-form" method="post" action="{{ target }}">
+            {% for key, value in fields.items() %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-danger btn-block">Submit Payload</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById("attack-form").submit();
+</script>
+{% endblock %}

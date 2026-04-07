@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Secure Search{% endblock %}
+
+{% block banner %}
+<div class="mode-banner secure">SECURE APP — PARAMETERIZED QUERIES</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <div class="card card-green card-static animate-in">
+        <h1>Product Search</h1>
+        <p class="subtitle">This search uses parameterized LIKE queries — UNION payloads are treated as literal text.</p>
+
+        <form method="get" action="{{ url_for('sec_search') }}" style="display:flex;gap:10px;margin-bottom:16px">
+            <input type="text" name="q" value="{{ query_text or '' }}" placeholder="Try the same UNION payload here" style="flex:1">
+            <button type="submit" class="btn btn-success">Search</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if results %}
+                    {% for row in results %}
+                    <tr>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[3] }}</td>
+                        <td>{{ row[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="3" class="text-muted">No rows returned — payload treated as literal search text.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="mt-2">
+            <a href="{{ url_for('sec_login') }}" class="btn btn-ghost btn-sm">← Back to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

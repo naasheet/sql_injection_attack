@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Attack Dashboard{% endblock %}
+
+{% block banner %}
+<div class="mode-banner vuln">ATTACK DASHBOARD — ONE-CLICK PAYLOADS</div>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <h1 class="animate-in">Attack Dashboard</h1>
+    <p class="subtitle animate-in" style="animation-delay:0.05s">Click any button below to auto-launch the payload against the vulnerable routes.</p>
+
+    <div class="grid grid-2 stagger">
+        {% for attack in attacks %}
+        <div class="card animate-in">
+            <h2>Attack #{{ attack.id }}: {{ attack.name }}</h2>
+            <p class="text-muted" style="font-size:0.88rem;margin-bottom:12px;min-height:40px">{{ attack.description }}</p>
+            <div class="payload-tag mb-2">{{ attack.payload }}</div>
+            <form method="post" action="{{ url_for('launch_attack', attack_id=attack.id) }}">
+                <button class="btn btn-danger btn-block">
+                    Launch Attack #{{ attack.id }}
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

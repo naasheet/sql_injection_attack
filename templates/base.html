@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="SQL Injection Demo – Educational cybersecurity project demonstrating vulnerable vs secure coding practices.">
+    <title>{% block title %}SQLi Demo{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="{{ url_for('index') }}" class="nav-brand">
+            <span class="brand-icon">&lt;/&gt;</span> SQLi Demo
+        </a>
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+        <div class="nav-links">
+            <a href="{{ url_for('vuln_login') }}" class="nav-vuln {% if request.path.startswith('/vulnerable') %}active{% endif %}">Vulnerable</a>
+            <a href="{{ url_for('sec_login') }}" class="nav-sec {% if request.path.startswith('/secure') %}active{% endif %}">Secure</a>
+            <a href="{{ url_for('attacks_dashboard') }}" class="nav-atk {% if request.path.startswith('/attacks') %}active{% endif %}">Attacks</a>
+            <a href="{{ url_for('compare') }}" class="nav-cmp {% if request.path == '/compare' %}active{% endif %}">Compare</a>
+            <a href="{{ url_for('admin_users') }}" class="nav-admin {% if request.path.startswith('/admin') %}active{% endif %}">Admin</a>
+        </div>
+    </nav>
+
+    {% block banner %}{% endblock %}
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="wrap flash-container">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} animate-in">
+            <span class="alert-icon">
+                {% if category == 'success' %}[OK]{% elif category == 'error' %}[!]{% else %}[i]{% endif %}
+            </span>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

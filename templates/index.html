@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}SQL Injection Demo – Home{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1 class="animate-in">SQL Injection Lab</h1>
+    <p class="subtitle animate-in" style="animation-delay:0.1s">
+        An interactive cybersecurity demo that shows how SQL injection attacks work
+        and how parameterized queries, input validation, and rate limiting stop them.
+    </p>
+
+    <div class="hero-cards stagger">
+        <a href="{{ url_for('vuln_login') }}" class="hero-card hc-vuln animate-in">
+            <span class="card-icon">[V]</span>
+            <span class="card-title">Vulnerable App</span>
+            <span class="card-desc">String-concatenated queries — every injection works</span>
+        </a>
+
+        <a href="{{ url_for('sec_login') }}" class="hero-card hc-sec animate-in">
+            <span class="card-icon">[S]</span>
+            <span class="card-title">Secure App</span>
+            <span class="card-desc">Parameterized queries + input validation — attacks blocked</span>
+        </a>
+
+        <a href="{{ url_for('attacks_dashboard') }}" class="hero-card hc-atk animate-in">
+            <span class="card-icon">[A]</span>
+            <span class="card-title">Attack Dashboard</span>
+            <span class="card-desc">One-click launch for all 6 attack types</span>
+        </a>
+
+        <a href="{{ url_for('compare') }}" class="hero-card hc-cmp animate-in">
+            <span class="card-icon">[Q]</span>
+            <span class="card-title">Query Comparison</span>
+            <span class="card-desc">Side-by-side: vulnerable vs parameterized queries</span>
+        </a>
+
+        <a href="{{ url_for('admin_users') }}" class="hero-card hc-admin animate-in">
+            <span class="card-icon">[U]</span>
+            <span class="card-title">User Management</span>
+            <span class="card-desc">Add, remove, and reset demo users in the database</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
