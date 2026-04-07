@@ -28,15 +28,20 @@ from flask import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
+# Vercel has a read-only filesystem except /tmp
+IS_VERCEL = os.environ.get("VERCEL", "") == "1"
+if IS_VERCEL:
+    DB_PATH = "/tmp/users.db"
+else:
+    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
 
-# Try to import flask-limiter (optional – only used on secure routes)
+# Try to import flask-limiter (optional -- only used on secure routes)
 try:
     from flask_limiter import Limiter
     from flask_limiter.util import get_remote_address
 
     limiter = Limiter(key_func=get_remote_address, app=app)
-except ImportError:
+except Exception:
     limiter = None
 
 
@@ -101,7 +106,17 @@ def ensure_db():
 
 
 # Run on import so the DB is always ready
-ensure_db()
+try:
+    ensure_db()
+except Exception:
+    pass
+
+
+@app.before_request
+def _ensure_db_before_request():
+    """On Vercel /tmp is ephemeral -- re-create DB if it was wiped."""
+    if not os.path.exists(DB_PATH):
+        ensure_db()
 
 
 # ---------------------------------------------------------------------------
