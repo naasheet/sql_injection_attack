@@ -21,6 +21,16 @@ An interactive cybersecurity education tool that demonstrates **6 types of SQL i
 5. **Error-Based** — Single quote triggers raw SQL error/traceback
 6. **Stacked Query** — `'; DROP TABLE users; --` (conceptual demo)
 
+## Dynamic Attack Catalog
+
+Attack definitions are loaded at runtime from `attacks.json`.
+
+- Dashboard (`/attacks`) reads this catalog on each request.
+- Compare page (`/compare`) builds query examples from the same catalog.
+- Most CLI scripts in `attack_scripts/` also load payloads from this file.
+
+You can add, remove, or modify attacks in `attacks.json` without changing `app.py`.
+
 ## Quick Start (Local)
 
 ```bash

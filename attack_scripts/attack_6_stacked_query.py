@@ -1,6 +1,7 @@
+from catalog import load_attack
+
+
 LOGIN_URL = "http://127.0.0.1:5000/vulnerable/login"
-USERNAME_PAYLOAD = "'; DROP TABLE users; --"
-PASSWORD = "anything"
 
 
 def build_vulnerable_query(username: str, password: str) -> str:
@@ -11,10 +12,13 @@ def build_vulnerable_query(username: str, password: str) -> str:
 
 
 def main() -> None:
-    query = build_vulnerable_query(USERNAME_PAYLOAD, PASSWORD)
+    attack = load_attack(6)
+    username_payload = attack["payload"]
+    password = attack.get("password", "anything")
+    query = build_vulnerable_query(username_payload, password)
 
     print(f"Target login route: {LOGIN_URL}")
-    print(f"Username payload: {USERNAME_PAYLOAD!r}")
+    print(f"Username payload: {username_payload!r}")
     print()
     print("[DEMO SAFETY] No request is sent in this script.")
     print("Reason: this payload is destructive and could drop the users table.")

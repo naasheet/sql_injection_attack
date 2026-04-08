@@ -7,8 +7,10 @@ query comparison page, and an admin user-management panel.
 """
 
 import os
+import json
 import re
 import sqlite3
+from pathlib import Path
 
 from flask import (
     Flask,
@@ -159,54 +161,102 @@ def has_injection_markers(value: str) -> bool:
 # Attack definitions (used by dashboard + compare)
 # ---------------------------------------------------------------------------
 
-ATTACKS = [
-    {
-        "id": 1,
-        "name": "Login Bypass",
-        "description": "Classic OR-based payload that makes the WHERE clause always true, bypassing the password check entirely.",
-        "action": "login_post",
-        "payload": "' OR '1'='1' -- ",
-        "password": "anything",
-    },
-    {
-        "id": 2,
-        "name": "Specific User Impersonation",
-        "description": "Targets a known username and comments out the password condition with --.",
-        "action": "login_post",
-        "payload": "admin' -- ",
-        "password": "wrong-password",
-    },
-    {
-        "id": 3,
-        "name": "UNION Data Extraction",
-        "description": "Appends a UNION SELECT to the product search, leaking the users table into search results.",
-        "action": "search_get",
-        "payload": "%' UNION SELECT id, username, email, role FROM users -- ",
-    },
-    {
-        "id": 4,
-        "name": "Boolean Blind Injection",
-        "description": "Injects OR 1=1 into the profile id parameter so every user row is returned.",
-        "action": "profile_get",
-        "payload": "1 OR 1=1",
-    },
-    {
-        "id": 5,
-        "name": "Error-Based Injection",
-        "description": "Sends a single quote to break the SQL syntax and trigger a raw error / traceback.",
-        "action": "login_post",
-        "payload": "'",
-        "password": "anything",
-    },
-    {
-        "id": 6,
-        "name": "Stacked Query (DROP TABLE)",
-        "description": "Attempts to chain a DROP TABLE statement. SQLite blocks this, but MySQL / Postgres would not.",
-        "action": "login_post",
-        "payload": "'; DROP TABLE users; --",
-        "password": "anything",
-    },
-]
+ATTACKS_FILE = Path(__file__).with_name("attacks.json")
+ALLOWED_ATTACK_ACTIONS = {"login_post", "search_get", "profile_get"}
+ATTACK_TEMPLATE_PATTERN = re.compile(r"{([A-Za-z_][A-Za-z0-9_]*)}")
+
+
+def _load_attack_context() -> dict:
+    conn = get_db()
+    try:
+        rows = conn.cursor().execute("SELECT username, role FROM users ORDER BY id").fetchall()
+    except Exception:
+        app.logger.exception("Failed to build attack context from users table")
+        rows = []
+    finally:
+        conn.close()
+
+    usernames = [row[0] for row in rows]
+    admin_username = next((row[0] for row in rows if row[1] == "admin"), None)
+    if admin_username is None:
+        admin_username = usernames[0] if usernames else "admin"
+
+    return {
+        "admin_username": admin_username,
+        "first_username": usernames[0] if usernames else admin_username,
+    }
+
+
+def _resolve_attack_template(value: str, context: dict) -> str:
+    def replace(match):
+        key = match.group(1)
+        return str(context.get(key, match.group(0)))
+
+    return ATTACK_TEMPLATE_PATTERN.sub(replace, value)
+
+
+def load_attacks() -> list[dict]:
+    if not ATTACKS_FILE.exists():
+        app.logger.warning("Attack catalog missing: %s", ATTACKS_FILE)
+        return []
+
+    try:
+        with ATTACKS_FILE.open("r", encoding="utf-8") as fh:
+            raw_attacks = json.load(fh)
+    except Exception:
+        app.logger.exception("Failed to load attack catalog: %s", ATTACKS_FILE)
+        return []
+
+    if not isinstance(raw_attacks, list):
+        app.logger.warning("Attack catalog must be a JSON list: %s", ATTACKS_FILE)
+        return []
+
+    context = _load_attack_context()
+    parsed = []
+    seen_ids = set()
+
+    for raw in raw_attacks:
+        if not isinstance(raw, dict):
+            continue
+
+        attack_id = raw.get("id")
+        name = raw.get("name")
+        action = raw.get("action")
+        description = raw.get("description", "")
+
+        if not isinstance(attack_id, int):
+            continue
+        if attack_id in seen_ids:
+            app.logger.warning("Duplicate attack id in catalog: %s", attack_id)
+            continue
+        if not isinstance(name, str) or not name.strip():
+            continue
+        if action not in ALLOWED_ATTACK_ACTIONS:
+            continue
+
+        payload_raw = raw.get("payload_template", raw.get("payload"))
+        if not isinstance(payload_raw, str) or not payload_raw:
+            continue
+
+        password_raw = raw.get("password_template", raw.get("password", "anything"))
+        if not isinstance(password_raw, str):
+            password_raw = str(password_raw)
+
+        attack = {
+            "id": attack_id,
+            "name": name.strip(),
+            "description": description.strip() if isinstance(description, str) else "",
+            "action": action,
+            "payload": _resolve_attack_template(payload_raw, context),
+        }
+
+        if action == "login_post":
+            attack["password"] = _resolve_attack_template(password_raw, context)
+
+        parsed.append(attack)
+        seen_ids.add(attack_id)
+
+    return sorted(parsed, key=lambda a: a["id"])
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +264,7 @@ ATTACKS = [
 # ---------------------------------------------------------------------------
 
 
-def build_compare_cases():
+def build_compare_cases(attacks: list[dict]):
     login_tpl = (
         "SELECT id, username, role, is_active FROM users "
         "WHERE username = '{username}' AND password = '{password}'"
@@ -240,63 +290,51 @@ def build_compare_cases():
         "WHERE name LIKE ? OR category LIKE ?"
     )
 
-    a1 = ("' OR '1'='1' -- ", "anything")
-    a2 = ("admin' -- ", "wrong-password")
-    a3_payload = "%' UNION SELECT id, username, email, role FROM users -- "
-    a4_payload = "1 OR 1=1"
-    a5 = ("'", "anything")
-    a6 = ("'; DROP TABLE users; --", "anything")
+    cases = []
+    for attack in attacks:
+        payload = attack["payload"]
+        case_name = f"Attack #{attack['id']} - {attack['name']}"
 
-    return [
-        {
-            "name": "Attack #1 – Login Bypass",
-            "payload": a1[0],
-            "original_template": login_tpl,
-            "injected_query": login_tpl.format(username=a1[0], password=a1[1]),
-            "parameterized_query": login_param,
-            "safe_params": a1,
-        },
-        {
-            "name": "Attack #2 – User Impersonation",
-            "payload": a2[0],
-            "original_template": login_tpl,
-            "injected_query": login_tpl.format(username=a2[0], password=a2[1]),
-            "parameterized_query": login_param,
-            "safe_params": a2,
-        },
-        {
-            "name": "Attack #3 – UNION Extraction",
-            "payload": a3_payload,
-            "original_template": search_tpl,
-            "injected_query": search_tpl.format(term=a3_payload),
-            "parameterized_query": search_param,
-            "safe_params": (f"%{a3_payload}%", f"%{a3_payload}%"),
-        },
-        {
-            "name": "Attack #4 – Boolean Blind",
-            "payload": a4_payload,
-            "original_template": profile_tpl,
-            "injected_query": profile_tpl.format(user_id=a4_payload),
-            "parameterized_query": profile_param,
-            "safe_params": (a4_payload,),
-        },
-        {
-            "name": "Attack #5 – Error-Based",
-            "payload": a5[0],
-            "original_template": login_tpl,
-            "injected_query": login_tpl.format(username=a5[0], password=a5[1]),
-            "parameterized_query": login_param,
-            "safe_params": a5,
-        },
-        {
-            "name": "Attack #6 – Stacked Query",
-            "payload": a6[0],
-            "original_template": login_tpl,
-            "injected_query": login_tpl.format(username=a6[0], password=a6[1]),
-            "parameterized_query": login_param,
-            "safe_params": a6,
-        },
-    ]
+        if attack["action"] == "login_post":
+            password = attack.get("password", "anything")
+            cases.append(
+                {
+                    "name": case_name,
+                    "payload": payload,
+                    "original_template": login_tpl,
+                    "injected_query": login_tpl.format(username=payload, password=password),
+                    "parameterized_query": login_param,
+                    "safe_params": (payload, password),
+                }
+            )
+            continue
+
+        if attack["action"] == "search_get":
+            cases.append(
+                {
+                    "name": case_name,
+                    "payload": payload,
+                    "original_template": search_tpl,
+                    "injected_query": search_tpl.format(term=payload),
+                    "parameterized_query": search_param,
+                    "safe_params": (f"%{payload}%", f"%{payload}%"),
+                }
+            )
+            continue
+
+        if attack["action"] == "profile_get":
+            cases.append(
+                {
+                    "name": case_name,
+                    "payload": payload,
+                    "original_template": profile_tpl,
+                    "injected_query": profile_tpl.format(user_id=payload),
+                    "parameterized_query": profile_param,
+                    "safe_params": (payload,),
+                }
+            )
+
+    return cases
 
 
 # ===================================================================
@@ -312,7 +350,7 @@ def index():
 
 
 # ===================================================================
-#  VULNERABLE routes (string concatenation – intentionally unsafe)
+#  VULNERABLE routes (string concatenation - intentionally unsafe)
 # ===================================================================
 
 
@@ -355,9 +393,9 @@ def vuln_login():
                 else "The payload attempted to break the SQL syntax. Check the query below."
             )
         elif not result:
-            explanation = "Normal failed login – no injection detected."
+            explanation = "Normal failed login - no injection detected."
         else:
-            explanation = "Normal credential match – returned one user row."
+            explanation = "Normal credential match - returned one user row."
 
     return render_template(
         "vulnerable/login.html",
@@ -400,7 +438,7 @@ def vuln_search():
     if term:
         if " union " in tl:
             explanation = (
-                "A UNION SELECT was injected – rows from the users table were appended "
+                "A UNION SELECT was injected - rows from the users table were appended "
                 "to the product results. Highlighted rows below should NOT be visible."
             )
             for row in tagged:
@@ -409,7 +447,7 @@ def vuln_search():
         elif " or " in tl and "=" in tl:
             explanation = "An always-true condition was injected, returning extra rows."
         else:
-            explanation = "Normal search – no injection detected."
+            explanation = "Normal search - no injection detected."
 
     return render_template(
         "vulnerable/search.html",
@@ -457,7 +495,7 @@ def vuln_profile():
 
     if " or " in uid_lower and "=" in uid_lower:
         explanation = (
-            "OR 1=1 made the WHERE clause always true – every user row is returned."
+            "OR 1=1 made the WHERE clause always true - every user row is returned."
         )
         suspicious = list(range(len(rows)))
     elif " union " in uid_lower:
@@ -591,12 +629,13 @@ def sec_profile():
 
 @app.route("/attacks")
 def attacks_dashboard():
-    return render_template("attacks.html", attacks=ATTACKS)
+    return render_template("attacks.html", attacks=load_attacks())
 
 
 @app.route("/attacks/launch/<int:attack_id>", methods=["POST"])
 def launch_attack(attack_id: int):
-    attack = next((a for a in ATTACKS if a["id"] == attack_id), None)
+    attacks = load_attacks()
+    attack = next((a for a in attacks if a["id"] == attack_id), None)
     if attack is None:
         abort(404, "Unknown attack id")
 
@@ -627,11 +666,12 @@ def launch_attack(attack_id: int):
 
 @app.route("/compare")
 def compare():
-    return render_template("compare.html", cases=build_compare_cases())
+    attacks = load_attacks()
+    return render_template("compare.html", cases=build_compare_cases(attacks))
 
 
 # ===================================================================
-#  ADMIN – User Management
+#  ADMIN - User Management
 # ===================================================================
 
 
