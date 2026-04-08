@@ -24,13 +24,23 @@
         </form>
 
         {% if result %}
-        <div class="alert alert-error mt-2 animate-in">
-            <span class="alert-icon">[!]</span>
-            <div>
-                <strong>Injection succeeded!</strong><br>
-                Matched row: <code>{{ result }}</code>
+            {% if explanation_text and 'Normal credential match' in explanation_text %}
+            <div class="alert alert-success mt-2 animate-in">
+                <span class="alert-icon">✓</span>
+                <div>
+                    <strong>Login successful!</strong><br>
+                    Matched row: <code>{{ result }}</code>
+                </div>
             </div>
-        </div>
+            {% else %}
+            <div class="alert alert-error mt-2 animate-in">
+                <span class="alert-icon">[!]</span>
+                <div>
+                    <strong>Injection succeeded!</strong><br>
+                    Matched row: <code>{{ result }}</code>
+                </div>
+            </div>
+            {% endif %}
         {% endif %}
 
         {% if explanation_text %}
